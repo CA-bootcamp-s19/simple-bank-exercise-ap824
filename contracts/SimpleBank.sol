@@ -26,14 +26,14 @@ contract SimpleBank {
     //
     
     /* Add an argument for this event, an accountAddress */
-    event LogEnrolled(address _accountAddress);
+    event LogEnrolled(address accountAddress);
 
     /* Add 2 arguments for this event, an accountAddress and an amount */
-    event LogDepositMade(address _accountAddress, int256 _amount);
+    event LogDepositMade(address accountAddress, uint amount);
 
     /* Create an event called LogWithdrawal */
     /* Add 3 arguments for this event, an accountAddress, withdrawAmount and a newBalance */
-    event LogWithdrawal(address _accountAddress, int256 _withdrawAmount, int256 _newBalance);
+    event LogWithdrawal(address accountAddress, uint withdrawAmount, uint newBalance);
 
     //
     // Functions
@@ -58,37 +58,49 @@ contract SimpleBank {
     /// @return The balance of the user
     // A SPECIAL KEYWORD prevents function from editing state variables;
     // allows function to run locally/off blockchain
-    function getBalance() public returns (uint) {
+    function getBalance() public view returns (uint) {
         /* Get the balance of the sender of this transaction */
+        return balances[msg.sender];
     }
 
     /// @notice Enroll a customer with the bank
     /// @return The users enrolled status
     // Emit the appropriate event
     function enroll() public returns (bool){
+        enrolled[msg.sender] = true;
+        emit LogEnrolled(msg.sender);
+        return true;
     }
 
     /// @notice Deposit ether into bank
     /// @return The balance of the user after the deposit is made
     // Add the appropriate keyword so that this function can receive ether
     // Use the appropriate global variables to get the transaction sender and value
-    // Emit the appropriate event    
+    // Emit the appropriate event
     // Users should be enrolled before they can make deposits
-    function deposit() public returns (uint) {
+    function deposit() public payable returns (uint) {
         /* Add the amount to the user's balance, call the event associated with a deposit,
           then return the balance of the user */
+          require(enrolled[msg.sender] == true, "Sender is not enrolled");
+          balances[msg.sender] += msg.value;
+          emit LogDepositMade(msg.sender, msg.value);
+          return balances[msg.sender];
     }
 
     /// @notice Withdraw ether from bank
     /// @dev This does not return any excess ether sent to it
     /// @param withdrawAmount amount you want to withdraw
     /// @return The balance remaining for the user
-    // Emit the appropriate event    
+    // Emit the appropriate event
     function withdraw(uint withdrawAmount) public returns (uint) {
         /* If the sender's balance is at least the amount they want to withdraw,
            Subtract the amount from the sender's balance, and try to send that amount of ether
-           to the user attempting to withdraw. 
+           to the user attempting to withdraw.
            return the user's balance.*/
+           require(balances[msg.sender] >= withdrawAmount, "Not enough in sender's balance");
+           balances[msg.sender] -= withdrawAmount;
+           msg.sender.transfer(withdrawAmount);
+           return balances[msg.sender];
     }
 
 }
